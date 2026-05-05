@@ -10,43 +10,7 @@ The solution provisions DataSync tasks (Enhanced mode), cross-account [IAM](http
 
 ### Architecture
 
-```
-                    ┌─────────────────────────────┐
-                    │        Hub Account           │
-                    │   (Central Data Source)       │
-                    │                               │
-                    │  ┌─────────────────────────┐  │
-                    │  │    Source S3 Bucket      │  │
-                    │  │  (shared datasets)       │  │
-                    │  └───────────┬─────────────┘  │
-                    │              │                 │
-                    │  ┌───────────▼─────────────┐  │
-                    │  │   DataSync Tasks         │  │
-                    │  │   (Enhanced Mode)        │  │
-                    │  │   One per spoke account  │  │
-                    │  └──┬────────┬────────┬────┘  │
-                    │     │        │        │       │
-                    │  ┌──▼───┐ ┌──▼───┐ ┌──▼───┐  │
-                    │  │ IAM  │ │  CW  │ │ SNS  │  │
-                    │  │Roles │ │ Dash │ │Topic │  │
-                    │  └──────┘ └──────┘ └──────┘  │
-                    └──────────┬────────────────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-    ┌─────────▼──────┐ ┌──────▼────────┐ ┌─────▼──────────┐
-    │  Spoke: Dev    │ │ Spoke: Staging│ │ Spoke: Prod    │
-    │                │ │               │ │                │
-    │ ┌────────────┐ │ │ ┌───────────┐ │ │ ┌────────────┐ │
-    │ │ Dest S3    │ │ │ │ Dest S3   │ │ │ │ Dest S3    │ │
-    │ │ Bucket     │ │ │ │ Bucket    │ │ │ │ Bucket     │ │
-    │ └────────────┘ │ │ └───────────┘ │ │ └────────────┘ │
-    │ ┌────────────┐ │ │ ┌───────────┐ │ │ ┌────────────┐ │
-    │ │ IAM Role   │ │ │ │ IAM Role  │ │ │ │ IAM Role   │ │
-    │ │ (DataSync) │ │ │ │ (DataSync)│ │ │ │ (DataSync) │ │
-    │ └────────────┘ │ │ └───────────┘ │ │ └────────────┘ │
-    └────────────────┘ └───────────────┘ └────────────────┘
-```
+![Hub-and-Spoke Architecture](images/architecture.png)
 
 ### How it works
 
