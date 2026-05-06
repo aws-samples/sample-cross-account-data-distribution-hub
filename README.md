@@ -72,15 +72,19 @@ Edit `terraform.tfvars` and replace placeholder values:
 
 ### 2. Initialize and deploy
 
+The deployment requires a two-pass approach because DataSync validates spoke bucket access during resource creation, but the spoke bucket policy can only reference the hub IAM role after it exists.
+
+**First apply** — creates hub-side resources (IAM role, KMS key, SNS, source location). The destination location will fail because the spoke bucket policy is not yet in place:
+
 ```bash
 terraform init
 terraform plan     # Review all resources that will be created
-terraform apply    # Provision the infrastructure
+terraform apply    # Partially succeeds — destination location fails (expected)
 ```
 
 ### 3. Apply spoke bucket policies
 
-After `terraform apply`, apply the generated bucket policies to each spoke's destination bucket:
+Using the DataSync role ARN from the first apply, apply the generated bucket policies to each spoke's destination bucket:
 
 ```bash
 # View the generated policies
@@ -89,6 +93,7 @@ terraform output spoke_bucket_policies
 # In each spoke account, apply the policy
 aws s3api put-bucket-policy \
   --bucket <DESTINATION_BUCKET_NAME> \
+  --region <REGION> \
   --policy '<POLICY_JSON_FROM_OUTPUT>'
 ```
 
@@ -99,22 +104,33 @@ In each spoke account, set Object Ownership to `BucketOwnerEnforced`:
 ```bash
 aws s3api put-bucket-ownership-controls \
   --bucket <DESTINATION_BUCKET_NAME> \
+  --region <REGION> \
   --ownership-controls 'Rules=[{ObjectOwnership=BucketOwnerEnforced}]'
 ```
 
-### 5. Confirm SNS subscriptions
+### 5. Re-run terraform apply
+
+With the spoke bucket policy in place, re-run apply to create the remaining resources (destination location, DataSync task, CloudWatch dashboard):
+
+```bash
+terraform apply    # Creates destination location, task, and dashboard
+```
+
+### 6. Confirm SNS subscriptions
 
 Each email recipient will receive a confirmation email from AWS. Subscriptions must be confirmed before failure notifications are delivered.
 
-### 6. Validate with a test execution
+### 7. Validate with a test execution
 
 ```bash
 # Get the task ARN from Terraform output
 terraform output task_arns
 
 # Trigger a one-time execution
-aws datasync start-task-execution --task-arn <TASK_ARN>
+aws datasync start-task-execution --task-arn <TASK_ARN> --region <REGION>
 ```
+
+> **Note:** Enhanced mode tasks have a cold-start initialization period on first execution (typically 2-3 minutes in `LAUNCHING` state). Subsequent executions start faster.
 
 ## Adding a spoke
 
@@ -139,8 +155,8 @@ Delete the spoke entry from the `spokes` map and run `terraform apply`. This des
 
 | File | Resources created |
 |---|---|
-| `main.tf` | AWS provider, SNS topic, email subscriptions |
-| `iam.tf` | DataSync service role, source bucket read policy, per-spoke destination write policies |
+| `main.tf` | AWS provider, KMS key for SNS encryption, SNS topic, email subscriptions |
+| `iam.tf` | DataSync service role, source bucket read policy, per-spoke destination write policies (includes `s3:DeleteObject`) |
 | `datasync.tf` | Source location, per-spoke destination locations, per-spoke Enhanced mode tasks with scheduling |
 | `monitoring.tf` | EventBridge rule for task failures, SNS target, CloudWatch dashboard with per-spoke widgets |
 | `spoke_bucket_policy.tf` | Generated IAM policy documents for spoke bucket policies (output as JSON) |
