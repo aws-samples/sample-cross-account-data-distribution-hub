@@ -1,12 +1,12 @@
 # Automated Cross-Account Data Distribution Hub
 
-Distribute data from a central Amazon S3 bucket to multiple AWS accounts using [AWS DataSync](https://docs.aws.amazon.com/datasync/latest/userguide/what-is-datasync.html) Enhanced mode — fully automated with Terraform.
+Distribute data from a central Amazon S3 bucket to multiple AWS accounts using [AWS DataSync](https://docs.aws.amazon.com/datasync/latest/userguide/what-is-datasync.html) Enhanced mode — automated with Terraform.
 
 ## Overview
 
-This repository contains the Terraform configuration for a hub-and-spoke data distribution architecture that automates cross-account S3 data transfers. The hub account hosts the source S3 bucket and all DataSync tasks. Each spoke account contains a destination S3 bucket that receives data on a configurable schedule.
+This repository contains the Terraform configuration for a hub-and-spoke data distribution architecture that automates cross-account Amazon S3 data transfers. The hub account hosts the source Amazon S3 bucket and all AWS DataSync tasks. Each spoke account contains a destination S3 bucket that receives data on a configurable schedule.
 
-The solution provisions DataSync tasks (Enhanced mode), cross-account [IAM](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html) roles, destination bucket policies, [Amazon CloudWatch](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/WhatIsCloudWatch.html) dashboards, and [Amazon SNS](https://docs.aws.amazon.com/sns/latest/dg/welcome.html) failure notifications from a single declarative configuration.
+The solution provisions AWS DataSync tasks (Enhanced mode), cross-account [AWS Identity and Access Management (IAM)](https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html) roles, destination bucket policies, [Amazon CloudWatch](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/WhatIsCloudWatch.html) dashboards, and [Amazon Simple Notification Service (Amazon SNS)](https://docs.aws.amazon.com/sns/latest/dg/welcome.html) failure notifications from a single declarative configuration.
 
 ### Architecture
 
@@ -14,12 +14,12 @@ The solution provisions DataSync tasks (Enhanced mode), cross-account [IAM](http
 
 ### How it works
 
-1. DataSync tasks (one per spoke) run on a cron schedule in Enhanced mode.
+1. AWS DataSync tasks (one per spoke) run on a cron schedule in Enhanced mode.
 2. Each task reads from the source S3 bucket and writes to the spoke's destination bucket.
 3. The hub-side IAM role has read access to the source and write access to each destination (via spoke bucket policies).
-4. [S3 Object Ownership](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html) (`BucketOwnerEnforced`) ensures spoke accounts own all transferred objects.
-5. CloudWatch EventBridge detects task failures and publishes to SNS for immediate alerting.
-6. A centralized CloudWatch dashboard provides operational visibility across all spokes.
+4. [S3 Object Ownership](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html) (`BucketOwnerEnforced`) configures the spoke account to own all transferred objects.
+5. Amazon EventBridge detects task failures and publishes to Amazon SNS for immediate alerting.
+6. A centralized Amazon CloudWatch dashboard provides operational visibility across all spokes.
 
 ## Repository contents
 
@@ -44,8 +44,8 @@ The solution provisions DataSync tasks (Enhanced mode), cross-account [IAM](http
 **AWS**
 - AWS account designated as the hub (central data source).
 - One or more spoke AWS accounts with destination S3 buckets already created.
-- Hub and spoke accounts should be part of the same [AWS Organization](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_ous_best_practices.html).
-- IAM principal in the hub account with permissions to create DataSync, IAM, CloudWatch, and SNS resources.
+- Hub and spoke accounts should be part of the same [AWS Organizations](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_ous_best_practices.html).
+- IAM principal in the hub account with permissions to create AWS DataSync, IAM, Amazon CloudWatch, and Amazon SNS resources.
 - Source S3 bucket must already exist in the hub account.
 
 **Terraform**
@@ -74,11 +74,11 @@ Edit `terraform.tfvars` and replace placeholder values:
 
 The deployment requires a two-pass approach because DataSync validates spoke bucket access during resource creation, but the spoke bucket policy can only reference the hub IAM role after it exists.
 
-**First apply** — creates hub-side resources (IAM role, KMS key, SNS, source location). The destination location will fail because the spoke bucket policy is not yet in place:
+**First apply** — creates hub-side resources (IAM role, KMS key, SNS, source location). The destination location fails because the spoke bucket policy is not yet in place:
 
 ```bash
 terraform init
-terraform plan     # Review all resources that will be created
+terraform plan     # Review all resources to be created
 terraform apply    # Partially succeeds — destination location fails (expected)
 ```
 
@@ -118,7 +118,7 @@ terraform apply    # Creates destination location, task, and dashboard
 
 ### 6. Confirm SNS subscriptions
 
-Each email recipient will receive a confirmation email from AWS. Subscriptions must be confirmed before failure notifications are delivered.
+Each email recipient receives a confirmation email from AWS. Subscriptions must be confirmed before failure notifications are delivered.
 
 ### 7. Validate with a test execution
 

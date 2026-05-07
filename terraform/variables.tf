@@ -17,18 +17,33 @@ variable "hub_region" {
 variable "source_bucket_arn" {
   description = "ARN of the source S3 bucket in the hub account."
   type        = string
+
+  validation {
+    condition     = can(regex("^arn:aws:s3:::[a-z0-9][a-z0-9.\\-]{1,61}[a-z0-9]$", var.source_bucket_arn))
+    error_message = "source_bucket_arn must be a valid S3 bucket ARN (e.g., arn:aws:s3:::my-bucket-name)."
+  }
 }
 
 variable "source_bucket_subdirectory" {
   description = "Subdirectory (prefix) in the source bucket to use as the root for transfers. Must start and end with '/'."
   type        = string
   default     = "/"
+
+  validation {
+    condition     = can(regex("^/.*/$", var.source_bucket_subdirectory)) || var.source_bucket_subdirectory == "/"
+    error_message = "source_bucket_subdirectory must start and end with '/' (e.g., '/datasets/shared/')."
+  }
 }
 
 variable "alert_email_addresses" {
   description = "List of email addresses to receive SNS notifications on DataSync task failures."
   type        = list(string)
   default     = []
+
+  validation {
+    condition     = alltrue([for email in var.alert_email_addresses : can(regex("^[^@]+@[^@]+\\.[^@]+$", email))])
+    error_message = "Each entry in alert_email_addresses must be a valid email address."
+  }
 }
 
 variable "default_tags" {

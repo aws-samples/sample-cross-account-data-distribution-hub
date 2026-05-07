@@ -20,7 +20,7 @@ Securing both the source and destination Amazon S3 buckets is the customer's res
 
 ### S3 Object Ownership
 
-Set Object Ownership to `BucketOwnerEnforced` on all destination buckets. This ensures the spoke account automatically owns all objects written by the hub's DataSync role and disables ACLs entirely. See [Controlling ownership of objects](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html).
+Set Object Ownership to `BucketOwnerEnforced` on all destination buckets. This enables the spoke account to automatically own all objects written by the hub's DataSync role and disables ACLs entirely. See [Controlling ownership of objects](https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html).
 
 ### IAM roles
 
